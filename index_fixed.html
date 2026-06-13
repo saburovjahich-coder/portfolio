@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jahongir Mahmudov — 3D Interior Visualization</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream: #F7F4EF;
+      --ink: #0D0D0B;
+      --ink-soft: #3A3832;
+      --gold: #B8935A;
+      --gold-light: #D4A96A;
+      --border: rgba(13,13,11,0.10);
+      --border-strong: rgba(13,13,11,0.20);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 60px;
+      mix-blend-mode: normal;
+      transition: background 0.4s, padding 0.4s, box-shadow 0.4s;
+    }
+    nav.scrolled {
+      background: rgba(247,244,239,0.95);
+      padding: 18px 60px;
+      box-shadow: 0 1px 0 var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 40px; list-style: none; }
+    .nav-links a {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 60px 80px;
+      position: relative;
+      z-index: 2;
+    }
+    .hero-eyebrow {
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 28px;
+    }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3.5rem, 6vw, 5.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      color: var(--ink);
+      margin-bottom: 32px;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+    .hero-desc {
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: var(--ink-soft);
+      max-width: 360px;
+      margin-bottom: 48px;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 4px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .hero-cta:hover { color: var(--gold); border-color: var(--gold); }
+    .hero-cta svg { transition: transform 0.2s; }
+    .hero-cta:hover svg { transform: translateX(4px); }
+
+    .hero-right {
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-right img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scale(1.03);
+      transition: transform 8s ease;
+    }
+    .hero-right img.loaded { transform: scale(1); }
+    .hero-right::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(to right, var(--cream) 0%, transparent 20%);
+    }
+
+    .hero-stats {
+      position: absolute;
+      bottom: 80px; right: 60px;
+      display: flex; gap: 40px;
+      z-index: 3;
+    }
+    .stat { text-align: right; }
+    .stat-number {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.5rem;
+      font-weight: 300;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 40px; left: 60px;
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .scroll-line {
+      width: 40px; height: 1px;
+      background: var(--ink-soft);
+      animation: scrollPulse 2s ease-in-out infinite;
+    }
+    @keyframes scrollPulse {
+      0%, 100% { width: 40px; opacity: 1; }
+      50% { width: 20px; opacity: 0.4; }
+    }
+
+    /* ── SECTION BASE ── */
+    section { position: relative; }
+    .section-inner { max-width: 1300px; margin: 0 auto; padding: 0 60px; }
+
+    .section-eyebrow {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      font-weight: 300;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .section-title em { font-style: italic; }
+
+    /* ── ABOUT ── */
+    #about {
+      padding: 140px 0;
+      border-top: 1px solid var(--border);
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: center;
+    }
+    .about-text p {
+      font-size: 1rem;
+      line-height: 1.85;
+      color: var(--ink-soft);
+      margin-top: 32px;
+    }
+    .about-image {
+      position: relative;
+      aspect-ratio: 4/5;
+      overflow: hidden;
+    }
+    .about-image img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .about-image-frame {
+      position: absolute;
+      top: -16px; right: -16px;
+      width: 100%; height: 100%;
+      border: 1px solid var(--gold);
+      pointer-events: none;
+      opacity: 0.4;
+    }
+    .skills-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 32px;
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+    }
+    .skill-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+    }
+    .skill-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    /* ── PROJECTS ── */
+    #projects {
+      padding: 140px 0;
+      border-top: 1px solid var(--border);
+    }
+    .projects-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 72px;
+    }
+    .view-all-link {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .view-all-link:hover { color: var(--gold); border-color: var(--gold); }
+
+    /* Masonry-style featured grid */
+    .projects-featured {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 3px;
+    }
+    .proj-card {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      background: #E8E4DD;
+    }
+    .proj-card img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .proj-card:hover img { transform: scale(1.06); }
+    .proj-card--tall { grid-row: span 2; }
+    .proj-card--wide { grid-column: span 2; }
+    .proj-card--hero { grid-column: span 2; grid-row: span 2; }
+
+    .proj-card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(13,13,11,0.6) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s;
+      display: flex;
+      align-items: flex-end;
+      padding: 24px;
+    }
+    .proj-card:hover .proj-card-overlay { opacity: 1; }
+    .proj-card-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* All projects toggle */
+    .all-projects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-top: 3px;
+    }
+    .all-projects-grid .proj-card {
+      aspect-ratio: 4/3;
+    }
+    .all-projects-hidden { display: none; }
+    .toggle-projects-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 60px auto 0;
+      background: none;
+      border: 1px solid var(--border-strong);
+      padding: 16px 40px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .toggle-projects-btn:hover {
+      background: var(--ink);
+      color: var(--cream);
+    }
+    .toggle-projects-btn svg { transition: transform 0.3s; }
+    .toggle-projects-btn.open svg { transform: rotate(45deg); }
+
+    /* ── PROCESS ── */
+    #process {
+      padding: 140px 0;
+      background: var(--ink);
+      color: var(--cream);
+    }
+    #process .section-title { color: var(--cream); }
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      margin-top: 72px;
+    }
+    .process-step {
+      padding: 40px 32px;
+      border: 1px solid rgba(247,244,239,0.1);
+      transition: background 0.3s;
+    }
+    .process-step:hover { background: rgba(247,244,239,0.05); }
+    .process-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 3rem;
+      font-weight: 300;
+      color: var(--gold);
+      opacity: 0.6;
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+    .process-step h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--cream);
+      margin-bottom: 12px;
+    }
+    .process-step p {
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: rgba(247,244,239,0.5);
+    }
+
+    /* ── CONTACT ── */
+    #contact {
+      padding: 140px 0;
+      border-top: 1px solid var(--border);
+    }
+    .contact-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: start;
+    }
+    .contact-left p {
+      font-size: 1rem;
+      line-height: 1.85;
+      color: var(--ink-soft);
+      margin-top: 28px;
+      max-width: 380px;
+    }
+    .contact-links {
+      margin-top: 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-decoration: none;
+      color: var(--ink);
+      font-size: 0.88rem;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+    .contact-link:hover { color: var(--gold); }
+    .contact-link-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--border-strong);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .contact-link:hover .contact-link-icon {
+      border-color: var(--gold);
+      background: var(--gold);
+      color: white;
+    }
+    .contact-link-icon svg { width: 14px; height: 14px; }
+    .contact-link-meta { flex: 1; }
+    .contact-link-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 3px;
+    }
+    .contact-link-value {
+      font-size: 0.9rem;
+      color: var(--ink);
+    }
+    .contact-cta-box {
+      background: var(--ink);
+      padding: 56px 48px;
+      color: var(--cream);
+    }
+    .contact-cta-box h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem;
+      font-weight: 300;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    .contact-cta-box p {
+      font-size: 0.85rem;
+      line-height: 1.8;
+      color: rgba(247,244,239,0.6);
+      margin-bottom: 40px;
+    }
+    .contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--gold);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 16px 32px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .contact-btn:hover { background: var(--gold-light); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 40px 60px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    footer p { font-size: 0.75rem; color: var(--ink-soft); }
+
+    /* ── LIGHTBOX ── */
+    .lightbox {
+      display: none;
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(13,13,11,0.95);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 82vh;
+      object-fit: contain;
+    }
+    .lightbox-close {
+      position: absolute; top: 32px; right: 40px;
+      background: none; border: none;
+      color: rgba(247,244,239,0.6);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .lightbox-close:hover { color: var(--cream); }
+    .lightbox-nav {
+      display: flex; gap: 16px;
+    }
+    .lightbox-nav button {
+      background: none; border: 1px solid rgba(247,244,239,0.2);
+      color: rgba(247,244,239,0.7);
+      width: 44px; height: 44px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .lightbox-nav button:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .lightbox-counter {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(247,244,239,0.4);
+    }
+
+    /* ── ANIMATIONS ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s cubic-bezier(0.25,0.46,0.45,0.94),
+                  transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 20px 24px; }
+      nav.scrolled { padding: 14px 24px; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .hero-left { padding: 120px 24px 80px; }
+      .hero-stats { position: static; margin-top: 40px; justify-content: flex-start; }
+      .hero-scroll-hint { display: none; }
+      .section-inner { padding: 0 24px; }
+      .about-grid, .contact-layout { grid-template-columns: 1fr; gap: 48px; }
+      .about-image { display: none; }
+      .projects-featured { grid-template-columns: 1fr; }
+      .proj-card--tall, .proj-card--wide, .proj-card--hero { grid-column: span 1; grid-row: span 1; }
+      .proj-card { aspect-ratio: 4/3; }
+      .all-projects-grid { grid-template-columns: repeat(2, 1fr); }
+      .process-grid { grid-template-columns: 1fr 1fr; }
+      footer { flex-direction: column; gap: 12px; text-align: center; padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav id="nav">
+  <a href="#" class="nav-logo">JM Studio</a>
+  <ul class="nav-links">
+    <li><a href="#about">Обо мне</a></li>
+    <li><a href="#projects">Проекты</a></li>
+    <li><a href="#process">Процесс</a></li>
+    <li><a href="#contact">Контакты</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-left">
+    <p class="hero-eyebrow">3D Visualization & Interior Design</p>
+    <h1 class="hero-title">
+      Пространства,<br>
+      которые <em>живут</em>
+    </h1>
+    <p class="hero-desc">
+      Фотореалистичная 3D‑визуализация жилых и коммерческих интерьеров.
+      От концепции до финального рендера — с вниманием к каждой детали.
+    </p>
+    <a href="#projects" class="hero-cta">
+      Смотреть проекты
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+    <div class="hero-scroll-hint">
+      <span class="scroll-line"></span>
+      Scroll
+    </div>
+  </div>
+  <div class="hero-right">
+    <!-- Замените на ваше главное изображение -->
+    <img src="1.png" alt="Featured Interior" class="" id="hero-img">
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-number">3+</div>
+      <div class="stat-label">лет опыта</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">30+</div>
+      <div class="stat-label">проектов</div>
+    </div>
+    <div class="stat">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">довольных клиентов</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── ABOUT ── -->
+<section id="about">
+  <div class="section-inner">
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p class="section-eyebrow">Об авторе</p>
+        <h2 class="section-title">Mahmudov<br><em>Jahongir</em></h2>
+        <p>
+          3D‑визуализатор и дизайнер интерьеров из Худжанда.
+          Более трёх лет я создаю пространства, которые существуют сначала в пикселях —
+          и лишь потом в реальности. Каждый проект начинается с понимания того,
+          как человек будет жить в этом пространстве.
+        </p>
+        <p>
+          Специализация: фотореалистичная визуализация жилых и коммерческих объектов.
+          Работаю с заказчиками по всему СНГ, понимая, что качественный рендер —
+          это не просто красивая картинка, это инструмент продаж и принятия решений.
+        </p>
+        <div class="skills-list reveal reveal-delay-2">
+          <div class="skill-item"><span class="skill-dot"></span>3ds Max</div>
+          <div class="skill-item"><span class="skill-dot"></span>Corona Renderer</div>
+          <div class="skill-item"><span class="skill-dot"></span>AutoCAD</div>
+          <div class="skill-item"><span class="skill-dot"></span>Revit</div>
+          <div class="skill-item"><span class="skill-dot"></span>Жилые интерьеры</div>
+          <div class="skill-item"><span class="skill-dot"></span>Коммерческие пространства</div>
+        </div>
+      </div>
+      <div class="about-image reveal reveal-delay-2">
+        <!-- Замените на ваше портретное фото или любимый рендер -->
+        <img src="2.png" alt="Interior render">
+        <div class="about-image-frame"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROJECTS ── -->
+<section id="projects">
+  <div class="section-inner">
+    <div class="projects-header reveal">
+      <div>
+        <p class="section-eyebrow">Избранные работы</p>
+        <h2 class="section-title">Проекты</h2>
+      </div>
+    </div>
+
+    <!--
+      ╔══════════════════════════════════════════════════════════════╗
+      ║  КАК МЕНЯТЬ ФОТОГРАФИИ:                                      ║
+      ║  Просто замените "images/X.png" на имя вашего файла.         ║
+      ║  Все файлы изображений должны лежать в папке "images/"       ║
+      ║  рядом с этим HTML файлом.                                   ║
+      ║  Например: images/living_room.jpg или images/project_01.png  ║
+      ╚══════════════════════════════════════════════════════════════╝
+    -->
+
+    <!-- FEATURED GRID — первые 6 фото -->
+    <div class="projects-featured reveal">
+      <!-- Большой левый блок -->
+      <div class="proj-card proj-card--tall" data-src="1.png">
+        <img src="1.png" alt="Проект 1" loading="lazy">
+        <div class="proj-card-overlay">
+          <span class="proj-card-label">Гостиная · Жилой</span>
+        </div>
+      </div>
+      <!-- Правая колонка верх -->
+      <div class="proj-card" data-src="2.png">
+        <img src="2.png" alt="Проект 2" loading="lazy">
+        <div class="proj-card-overlay">
+          <span class="proj-card-label">Кухня · Жилой</span>
+        </div>
+      </div>
+      <div class="proj-card" data-src="3.png">
+        <img src="3.png" alt="Проект 3" loading="lazy">
+        <div class="proj-card-overlay">
+          <span class="proj-card-label">Спальня · Жилой</span>
+        </div>
+      </div>
+      <!-- Нижний ряд -->
+      <div class="proj-card" data-src="4.png">
+        <img src="4.png" alt="Проект 4" loading="lazy">
+        <div class="proj-card-overlay">
+          <span class="proj-card-label">Ванная · Жилой</span>
+        </div>
+      </div>
+      <div class="proj-card proj-card--wide" data-src="5.png">
+        <img src="5.png" alt="Проект 5" loading="lazy">
+        <div class="proj-card-overlay">
+          <span class="proj-card-label">Офис · Коммерческий</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMAINING PROJECTS — images 6–36 -->
+    <div class="all-projects-grid all-projects-hidden" id="all-grid">
+      <!-- Изображения 6–36 (меняйте только имена файлов) -->
+      <div class="proj-card" data-src="6.png"><img src="6.png" alt="Проект 6" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 6</span></div></div>
+      <div class="proj-card" data-src="7.png"><img src="7.png" alt="Проект 7" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 7</span></div></div>
+      <div class="proj-card" data-src="8.png"><img src="8.png" alt="Проект 8" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 8</span></div></div>
+      <div class="proj-card" data-src="9.png"><img src="9.png" alt="Проект 9" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 9</span></div></div>
+      <div class="proj-card" data-src="10.png"><img src="10.png" alt="Проект 10" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 10</span></div></div>
+      <div class="proj-card" data-src="11.png"><img src="11.png" alt="Проект 11" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 11</span></div></div>
+      <div class="proj-card" data-src="12.png"><img src="12.png" alt="Проект 12" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 12</span></div></div>
+      <div class="proj-card" data-src="13.png"><img src="13.png" alt="Проект 13" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 13</span></div></div>
+      <div class="proj-card" data-src="14.png"><img src="14.png" alt="Проект 14" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 14</span></div></div>
+      <div class="proj-card" data-src="15.png"><img src="15.png" alt="Проект 15" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 15</span></div></div>
+      <div class="proj-card" data-src="16.png"><img src="16.png" alt="Проект 16" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 16</span></div></div>
+      <div class="proj-card" data-src="17.png"><img src="17.png" alt="Проект 17" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 17</span></div></div>
+      <div class="proj-card" data-src="18.png"><img src="18.png" alt="Проект 18" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 18</span></div></div>
+      <div class="proj-card" data-src="19.png"><img src="19.png" alt="Проект 19" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 19</span></div></div>
+      <div class="proj-card" data-src="20.png"><img src="20.png" alt="Проект 20" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 20</span></div></div>
+      <div class="proj-card" data-src="21.png"><img src="21.png" alt="Проект 21" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 21</span></div></div>
+      <div class="proj-card" data-src="22.png"><img src="22.png" alt="Проект 22" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 22</span></div></div>
+      <div class="proj-card" data-src="23.png"><img src="23.png" alt="Проект 23" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 23</span></div></div>
+      <div class="proj-card" data-src="24.png"><img src="24.png" alt="Проект 24" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 24</span></div></div>
+      <div class="proj-card" data-src="25.png"><img src="25.png" alt="Проект 25" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 25</span></div></div>
+      <div class="proj-card" data-src="26.png"><img src="26.png" alt="Проект 26" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 26</span></div></div>
+      <div class="proj-card" data-src="27.png"><img src="27.png" alt="Проект 27" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 27</span></div></div>
+      <div class="proj-card" data-src="28.png"><img src="28.png" alt="Проект 28" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 28</span></div></div>
+      <div class="proj-card" data-src="29.png"><img src="29.png" alt="Проект 29" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 29</span></div></div>
+      <div class="proj-card" data-src="30.png"><img src="30.png" alt="Проект 30" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 30</span></div></div>
+      <div class="proj-card" data-src="31.png"><img src="31.png" alt="Проект 31" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 31</span></div></div>
+      <div class="proj-card" data-src="32.png"><img src="32.png" alt="Проект 32" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 32</span></div></div>
+      <div class="proj-card" data-src="33.png"><img src="33.png" alt="Проект 33" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 33</span></div></div>
+      <div class="proj-card" data-src="34.png"><img src="34.png" alt="Проект 34" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 34</span></div></div>
+      <div class="proj-card" data-src="35.png"><img src="35.png" alt="Проект 35" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 35</span></div></div>
+      <div class="proj-card" data-src="36.png"><img src="36.png" alt="Проект 36" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 36</span></div></div>
+      <div class="proj-card" data-src="37.png"><img src="37.png" alt="Проект 37" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 37</span></div></div>
+      <div class="proj-card" data-src="38.png"><img src="38.png" alt="Проект 38" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 38</span></div></div>
+      <div class="proj-card" data-src="39.png"><img src="39.png" alt="Проект 39" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 39</span></div></div>
+      <div class="proj-card" data-src="40.png"><img src="40.png" alt="Проект 40" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 40</span></div></div>
+      <div class="proj-card" data-src="41.png"><img src="41.png" alt="Проект 41" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 41</span></div></div>
+      <div class="proj-card" data-src="42.png"><img src="42.png" alt="Проект 42" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 42</span></div></div>
+      <div class="proj-card" data-src="43.png"><img src="43.png" alt="Проект 43" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 43</span></div></div>
+      <div class="proj-card" data-src="44.png"><img src="44.png" alt="Проект 44" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 44</span></div></div>
+      <div class="proj-card" data-src="45.png"><img src="45.png" alt="Проект 45" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 45</span></div></div>
+      <div class="proj-card" data-src="46.png"><img src="46.png" alt="Проект 46" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 46</span></div></div>
+      <div class="proj-card" data-src="47.png"><img src="47.png" alt="Проект 47" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 47</span></div></div>
+      <div class="proj-card" data-src="48.png"><img src="48.png" alt="Проект 48" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 48</span></div></div>
+      <div class="proj-card" data-src="49.png"><img src="49.png" alt="Проект 49" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 49</span></div></div>
+      <div class="proj-card" data-src="50.png"><img src="50.png" alt="Проект 50" loading="lazy"><div class="proj-card-overlay"><span class="proj-card-label">Проект 50</span></div></div>
+    </div>
+
+    <div style="text-align:center;">
+      <button class="toggle-projects-btn" id="toggle-btn" onclick="toggleProjects()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" id="toggle-icon">
+          <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Смотреть все проекты
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROCESS ── -->
+<section id="process">
+  <div class="section-inner">
+    <div class="reveal">
+      <p class="section-eyebrow" style="color:var(--gold);">Как я работаю</p>
+      <h2 class="section-title">Рабочий<br><em>процесс</em></h2>
+    </div>
+    <div class="process-grid">
+      <div class="process-step reveal reveal-delay-1">
+        <div class="process-num">01</div>
+        <h3>Бриф</h3>
+        <p>Изучаю задачу, планировку, референсы. Согласовываем стиль, материалы, освещение и точки камер до начала работы.</p>
+      </div>
+      <div class="process-step reveal reveal-delay-2">
+        <div class="process-num">02</div>
+        <h3>Моделирование</h3>
+        <p>Строю 3D‑модель в 3ds Max по чертежам. Расставляю мебель, подбираю материалы из реальных библиотек.</p>
+      </div>
+      <div class="process-step reveal reveal-delay-3">
+        <div class="process-num">03</div>
+        <h3>Рендеринг</h3>
+        <p>Corona Renderer + физически корректное освещение. Результат — снимки, которые невозможно отличить от фото.</p>
+      </div>
+      <div class="process-step reveal reveal-delay-4">
+        <div class="process-num">04</div>
+        <h3>Финал</h3>
+        <p>Пост-обработка, финальные правки, передача файлов в нужных форматах. Поддержка после сдачи.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ── -->
+<section id="contact">
+  <div class="section-inner">
+    <div class="contact-layout">
+      <div class="contact-left reveal">
+        <p class="section-eyebrow">Связаться</p>
+        <h2 class="section-title">Обсудим<br><em>проект?</em></h2>
+        <p>
+          Расскажите о своей идее — я отвечу в течение нескольких часов.
+          Работаю с клиентами из любой точки мира.
+        </p>
+        <div class="contact-links">
+          <a href="tel:+992926478008" class="contact-link">
+            <div class="contact-link-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <path d="M2 3.5A1.5 1.5 0 013.5 2h.5c.3 0 .6.2.7.5l1 2.5c.1.3 0 .6-.2.8L4.8 6.5a9 9 0 004.7 4.7l.7-.7c.2-.2.5-.3.8-.2l2.5 1c.3.1.5.4.5.7v.5A1.5 1.5 0 0112.5 14 10.5 10.5 0 012 3.5z"/>
+              </svg>
+            </div>
+            <div class="contact-link-meta">
+              <div class="contact-link-label">Телефон</div>
+              <div class="contact-link-value">+992 926 478 008</div>
+            </div>
+          </a>
+          <a href="mailto:saburovjahich@gmail.com" class="contact-link">
+            <div class="contact-link-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+                <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
+                <path d="M1.5 5l6.5 4.5L14.5 5"/>
+              </svg>
+            </div>
+            <div class="contact-link-meta">
+              <div class="contact-link-label">Email</div>
+              <div class="contact-link-value">saburovjahich@gmail.com</div>
+            </div>
+          </a>
+          <a href="https://t.me/+992926478008" class="contact-link" target="_blank">
+            <div class="contact-link-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13.5 2.5L1.5 7l4.5 1.5 1.5 4.5 2-3 3.5 2.5 1-9z"/>
+              </svg>
+            </div>
+            <div class="contact-link-meta">
+              <div class="contact-link-label">Telegram / WhatsApp</div>
+              <div class="contact-link-value">+992 926 478 008</div>
+            </div>
+          </a>
+        </div>
+      </div>
+      <div class="contact-cta-box reveal reveal-delay-2">
+        <h3>Готов к<br>новому проекту</h3>
+        <p>
+          Визуализация жилого интерьера, коммерческого пространства
+          или отдельных помещений — обсудим детали и сроки.
+        </p>
+        <a href="mailto:saburovjahich@gmail.com" class="contact-btn">
+          Написать сейчас
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <p>© 2025 Jahongir Mahmudov. Все права защищены.</p>
+  <p style="font-size:0.7rem; color:rgba(58,56,50,0.5);">3ds Max · Corona Renderer · AutoCAD · Revit</p>
+</footer>
+
+<!-- ── LIGHTBOX ── -->
+<div id="lightbox" class="lightbox" onclick="closeLightboxOutside(event)">
+  <button class="lightbox-close" onclick="closeLightbox()">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
+    Закрыть
+  </button>
+  <img id="lightbox-img" src="" alt="">
+  <div style="display:flex; align-items:center; gap:24px;">
+    <div class="lightbox-nav">
+      <button onclick="lightboxPrev()">&#8592;</button>
+      <button onclick="lightboxNext()">&#8594;</button>
+    </div>
+    <span class="lightbox-counter" id="lb-counter"></span>
+  </div>
+</div>
+
+<script>
+  // NAV scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // Hero image zoom on load
+  const heroImg = document.getElementById('hero-img');
+  if (heroImg.complete) heroImg.classList.add('loaded');
+  else heroImg.addEventListener('load', () => heroImg.classList.add('loaded'));
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => revealObserver.observe(el));
+
+  // Toggle all projects
+  let allOpen = false;
+  function toggleProjects() {
+    allOpen = !allOpen;
+    const grid = document.getElementById('all-grid');
+    const btn = document.getElementById('toggle-btn');
+    const icon = document.getElementById('toggle-icon');
+    if (allOpen) {
+      grid.classList.remove('all-projects-hidden');
+      btn.classList.add('open');
+      btn.lastChild.textContent = ' Скрыть';
+    } else {
+      grid.classList.add('all-projects-hidden');
+      btn.classList.remove('open');
+      btn.lastChild.textContent = ' Смотреть все проекты';
+    }
+  }
+
+  // Lightbox
+  let lbImages = [];
+  let lbIndex = 0;
+
+  function buildImageList() {
+    const cards = document.querySelectorAll('.proj-card');
+    lbImages = Array.from(cards).map(c => c.dataset.src);
+  }
+
+  document.querySelectorAll('.proj-card').forEach((card, i) => {
+    card.addEventListener('click', () => {
+      buildImageList();
+      lbIndex = i;
+      openLightbox(lbImages[lbIndex], lbIndex);
+    });
+  });
+
+  function openLightbox(src, idx) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lb-counter').textContent = (idx + 1) + ' / ' + lbImages.length;
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function closeLightboxOutside(e) {
+    if (e.target === document.getElementById('lightbox')) closeLightbox();
+  }
+
+  function lightboxPrev() {
+    buildImageList();
+    lbIndex = (lbIndex - 1 + lbImages.length) % lbImages.length;
+    openLightbox(lbImages[lbIndex], lbIndex);
+  }
+
+  function lightboxNext() {
+    buildImageList();
+    lbIndex = (lbIndex + 1) % lbImages.length;
+    openLightbox(lbImages[lbIndex], lbIndex);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('active')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lightboxPrev();
+    if (e.key === 'ArrowRight') lightboxNext();
+  });
+</script>
+
+</body>
+</html>
